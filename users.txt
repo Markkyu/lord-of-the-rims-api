@@ -1,0 +1,60 @@
+<?php
+require_once "db.php";
+
+function registerUser($data)
+{
+    $pdo = dbConnect();
+
+    $username = $data["username"] ?? "";
+    $password = $data["password"] ?? "";
+
+    if (!$username || !$password) {
+        http_response_code(400);
+        echo json_encode(["error" => "Username and password required"]);
+        return;
+    }
+
+    $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+    try {
+        $stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+        $stmt->execute([$username, $hashed]);
+        echo json_encode(["success" => true, "message" => "User registered"]);
+    } catch (PDOException $e) {
+        http_response_code(409);
+        echo json_encode(["error" => "Username already exists"]);
+    }
+}
+
+function loginUser($data)
+{
+    $pdo = dbConnect();
+
+    $username = $data["username"] ?? "";
+    $password = $data["password"] ?? "";
+
+    if (!$username || !$password) {
+        http_response_code(400);
+        echo json_encode(["error" => "Username and password required"]);
+        return;
+    }
+
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    $user = $stmt->fetch();
+
+    if (!$user || !password_verify($password, $user["password"])) {
+        http_response_code(401);
+        echo json_encode(["error" => "Invalid username or password"]);
+        return;
+    }
+
+    echo json_encode([
+        "success" => true,
+        "message" => "Login successful",
+        "user" => [
+            "id" => $user["user_id"],
+            "username" => $user["username"]
+        ]
+    ]);
+}

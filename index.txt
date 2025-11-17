@@ -1,0 +1,65 @@
+<?php
+
+header("Content-Type: application/json");
+
+$uri = explode("/", trim($_SERVER["REQUEST_URI"], "/"));
+$method = $_SERVER["REQUEST_METHOD"];
+
+// /api/cars
+if ($uri[1] === "cars") {
+    require "cars.php";
+
+    // /api/cars (GET all)
+    if ($method === "GET" && count($uri) === 2) {
+        getCars();
+        exit;
+    }
+
+    // /api/cars (POST)
+    if ($method === "POST" && count($uri) === 2) {
+        addCar();
+        exit;
+    }
+
+    // /api/cars/{id}
+    if (isset($uri[2])) {
+        $id = intval($uri[2]);
+
+        if ($method === "PUT") {
+            updateCar($id);
+            exit;
+        }
+
+        if ($method === "DELETE") {
+            deleteCar($id);
+            exit;
+        }
+    }
+}
+
+// /api/register or /api/login
+if ($uri[1] === "register" || $uri[1] === "login") {
+    require "users.php";
+
+    $data = json_decode(file_get_contents("php://input"), true);
+
+    if ($method !== "POST") {
+        http_response_code(405);
+        echo json_encode(["error" => "Only POST allowed"]);
+        exit;
+    }
+
+    if ($uri[1] === "register") {
+        registerUser($data);
+        exit;
+    }
+
+    if ($uri[1] === "login") {
+        loginUser($data);
+        exit;
+    }
+}
+
+// Not found
+http_response_code(404);
+echo json_encode(["error" => "Route not found"]);
